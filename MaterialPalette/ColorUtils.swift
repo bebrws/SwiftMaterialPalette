@@ -17,15 +17,15 @@ class ColorUtils {
     * Composite two potentially translucent colors over each other and returns the result.
     */
     static func compositeColors(foreground: Int, background: Int) -> Int {
-        let bgAlpha = getAlphaComponent(background)
-        let fgAlpha = getAlphaComponent(foreground)
-        let a = compositeAlpha(fgAlpha, backgroundAlpha: bgAlpha)
+        let bgAlpha = getAlphaComponent(color: background)
+        let fgAlpha = getAlphaComponent(color: foreground)
+        let a = compositeAlpha(foregroundAlpha: fgAlpha, backgroundAlpha: bgAlpha)
         
-        let r = compositeComponent(getRed(foreground), fgA: fgAlpha, bgC: getRed(background), bgA: bgAlpha, a: a)
-        let g = compositeComponent(getGreen(foreground), fgA: fgAlpha, bgC: getGreen(background), bgA: bgAlpha, a: a)
-        let b = compositeComponent(getBlue(foreground), fgA: fgAlpha, bgC: getBlue(background), bgA: bgAlpha, a: a)
+        let r = compositeComponent(fgC: getRed(color: foreground), fgA: fgAlpha, bgC: getRed(color: background), bgA: bgAlpha, a: a)
+        let g = compositeComponent(fgC: getGreen(color: foreground), fgA: fgAlpha, bgC: getGreen(color: background), bgA: bgAlpha, a: a)
+        let b = compositeComponent(fgC: getBlue(color: foreground), fgA: fgAlpha, bgC: getBlue(color: background), bgA: bgAlpha, a: a)
         
-        return getARGB(a, r: r, g: g, b: b)
+        return getARGB(a: a, r: r, g: g, b: b)
     }
     
     private static func compositeAlpha(foregroundAlpha: Int, backgroundAlpha: Int) -> Int {
@@ -45,13 +45,13 @@ class ColorUtils {
     * Formula defined here: http://www.w3.org/TR/2008/REC-WCAG20-20081211/#relativeluminancedef
     */
     static func calculateLuminance(color: Int) -> Double {
-        var red = Double(getRed(color)) / 255.0
+        var red = Double(getRed(color: color)) / 255.0
         red = red < 0.03928 ? red / 12.92 : pow((red + 0.055) / 1.055, 2.4)
         
-        var green = Double(getGreen(color)) / 255.0
+        var green = Double(getGreen(color: color)) / 255.0
         green = green < 0.03928 ? green / 12.92 : pow((green + 0.055) / 1.055, 2.4)
         
-        var blue = Double(getBlue(color)) / 255.0
+        var blue = Double(getBlue(color: color)) / 255.0
         blue = blue < 0.03928 ? blue / 12.92 : pow((blue + 0.055) / 1.055, 2.4)
         
         return (0.2126 * red) + (0.7152 * green) + (0.0722 * blue)
@@ -64,15 +64,15 @@ class ColorUtils {
     * Formula defined
     * <a href="http://www.w3.org/TR/2008/REC-WCAG20-20081211/#contrast-ratiodef">here</a>.
     */
-    static func calculateContrast(var foreground: Int, background: Int) -> Double {
-        let foregroundAlpha = getAlphaComponent(foreground)
+    static func calculateContrast(foreground: inout Int, background: Int) -> Double {
+        let foregroundAlpha = getAlphaComponent(color: foreground)
         if (foregroundAlpha < 255) {
             // If the foreground is translucent, composite the foreground over the background
-            foreground = compositeColors(foreground, background: background)
+            foreground = compositeColors(foreground: foreground, background: background)
         }
         
-        let luminance1 = calculateLuminance(foreground) + 0.05
-        let luminance2 = calculateLuminance(background) + 0.05
+        let luminance1 = calculateLuminance(color: foreground) + 0.05
+        let luminance2 = calculateLuminance(color: background) + 0.05
         
         // Now return the lighter luminance divided by the darker luminance
         return max(luminance1, luminance2) / min(luminance1, luminance2)
@@ -89,14 +89,14 @@ class ColorUtils {
     * @return the alpha value in the range 0-255, or nil if no value could be calculated.
     */
     static func calculateMinimumAlpha(foreground: Int, background: Int, minContrastRatio: Float) -> Int? {
-        if (getAlphaComponent(background) != 255) {
+        if (getAlphaComponent(color: background) != 255) {
             // background can not be translucent
             return nil
         }
 
         // First check that a fully opaque foreground has sufficient contrast
-        var testForeground: Int = setAlphaComponent(foreground, alpha: 255)
-        var testRatio: Double = calculateContrast(testForeground, background: background)
+        var testForeground: Int = setAlphaComponent(color: foreground, alpha: 255)
+        var testRatio: Double = calculateContrast(foreground: &testForeground, background: background)
         if (testRatio < Double(minContrastRatio)) {
             // Fully opaque foreground does not have sufficient contrast, return nil
             return nil
@@ -111,8 +111,8 @@ class ColorUtils {
             (maxAlpha - minAlpha) > MIN_ALPHA_SEARCH_PRECISION) {
                 let testAlpha = (minAlpha + maxAlpha) / 2
                 
-                testForeground = setAlphaComponent(foreground, alpha: testAlpha);
-                testRatio = calculateContrast(testForeground, background: background);
+                testForeground = setAlphaComponent(color: foreground, alpha: testAlpha);
+                testRatio = calculateContrast(foreground: &testForeground, background: background);
                 
                 if (testRatio < Double(minContrastRatio)) {
                     minAlpha = testAlpha
@@ -120,7 +120,7 @@ class ColorUtils {
                     maxAlpha = testAlpha
                 }
                 
-                numIterations++
+                numIterations+=1
         }
         
         // Conservatively return the max of the range of possible alphas, which is known to pass.

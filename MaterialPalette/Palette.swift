@@ -21,7 +21,7 @@ public class Palette {
         // We have a Bitmap so we need to quantization to reduce the number of colors
         
         // First we'll scale down the bitmap so it's largest dimension is as specified
-        let scaledBitmap: UIImage = Palette.scaleBitmapDown(uiImage, targetMaxDimension: DEFAULT_RESIZE_BITMAP_MAX_DIMENSION)
+        let scaledBitmap: UIImage = Palette.scaleBitmapDown(bitmap: uiImage, targetMaxDimension: DEFAULT_RESIZE_BITMAP_MAX_DIMENSION)
         
         let quantizer = ColorCutQuantizer(bitmap: scaledBitmap, maxColors: DEFAULT_CALCULATE_NUMBER_COLORS)
         
@@ -33,7 +33,7 @@ public class Palette {
         // }
         
         // Now call let the Generator do it's thing
-        generator.generate(swatches)
+        generator.generate(swatches: swatches)
     }
     
     public func getVibrantSwatch() -> Swatch? {
@@ -70,19 +70,19 @@ public class Palette {
         }
         
         let scaleRatio = Float(targetMaxDimension) / Float(maxDimension)
-        return scaleDownImage(bitmap, scale: scaleRatio)
+        return scaleDownImage(image: bitmap, scale: scaleRatio)
     }
     
     // http://nshipster.com/image-resizing/
     private static func scaleDownImage(image: UIImage, scale: Float) -> UIImage {
-        let size = CGSizeApplyAffineTransform(image.size, CGAffineTransformMakeScale(CGFloat(scale), CGFloat(scale)))
+        let size = image.size.applying(CGAffineTransform(scaleX: CGFloat(scale), y: CGFloat(scale)))
         let hasAlpha = false
         let scale: CGFloat = 0.0 // Automatically use scale factor of main screen
         
         UIGraphicsBeginImageContextWithOptions(size, !hasAlpha, scale)
-        image.drawInRect(CGRect(origin: CGPointZero, size: size))
+        image.draw(in: CGRect(origin: CGPoint(x:0,y:0), size: size))
         
-        let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
+        guard let scaledImage = UIGraphicsGetImageFromCurrentImageContext() else { return UIImage() }
         UIGraphicsEndImageContext()
         
         return scaledImage
@@ -103,7 +103,7 @@ public class Palette {
             self.color = color
             self.population = population
             let rgb = color.rgb()
-            let textColors = Swatch.generateTextColors(rgb)
+            let textColors = Swatch.generateTextColors(maybeRgb: rgb)
             self.titleTextColor = textColors[0]
             self.bodyTextColor = textColors[1]
         }
@@ -115,30 +115,30 @@ public class Palette {
         
         private static func generateTextColors(maybeRgb: Int?) -> [UIColor?] {
             if let rgb = maybeRgb {
-                let maybeLightTitleAlpha = ColorUtils.calculateMinimumAlpha(0xffffff, background: rgb, minContrastRatio: MIN_CONTRAST_TITLE_TEXT)
-                let maybeLightBodyAlpha = ColorUtils.calculateMinimumAlpha(0xffffff, background: rgb, minContrastRatio: MIN_CONTRAST_BODY_TEXT)
+                let maybeLightTitleAlpha = ColorUtils.calculateMinimumAlpha(foreground: 0xffffff, background: rgb, minContrastRatio: MIN_CONTRAST_TITLE_TEXT)
+                let maybeLightBodyAlpha = ColorUtils.calculateMinimumAlpha(foreground: 0xffffff, background: rgb, minContrastRatio: MIN_CONTRAST_BODY_TEXT)
                 if let lightTitleAlpha = maybeLightTitleAlpha,
-                       lightBodyAlpha = maybeLightBodyAlpha {
-                    return [UIColor.whiteColor().colorWithAlphaComponent(CGFloat(lightTitleAlpha)/255.0),
-                        UIColor.whiteColor().colorWithAlphaComponent(CGFloat(lightBodyAlpha)/255.0)]
+                    let lightBodyAlpha = maybeLightBodyAlpha {
+                    return [UIColor.white.withAlphaComponent(CGFloat(lightTitleAlpha)/255.0),
+                            UIColor.white.withAlphaComponent(CGFloat(lightBodyAlpha)/255.0)]
                 }
-                let maybeDarkTitleAlpha = ColorUtils.calculateMinimumAlpha(0x00000000, background: rgb, minContrastRatio: MIN_CONTRAST_TITLE_TEXT)
-                let maybeDarkBodyAlpha = ColorUtils.calculateMinimumAlpha(0x00000000, background: rgb, minContrastRatio: MIN_CONTRAST_BODY_TEXT)
+                let maybeDarkTitleAlpha = ColorUtils.calculateMinimumAlpha(foreground: 0x00000000, background: rgb, minContrastRatio: MIN_CONTRAST_TITLE_TEXT)
+                let maybeDarkBodyAlpha = ColorUtils.calculateMinimumAlpha(foreground: 0x00000000, background: rgb, minContrastRatio: MIN_CONTRAST_BODY_TEXT)
                 if let darkTitleAlpha = maybeDarkTitleAlpha,
-                       darkBodyAlpha = maybeDarkBodyAlpha {
-                    return [UIColor.blackColor().colorWithAlphaComponent(CGFloat(darkTitleAlpha)/255.0),
-                        UIColor.blackColor().colorWithAlphaComponent(CGFloat(darkBodyAlpha)/255.0)]
+                    let darkBodyAlpha = maybeDarkBodyAlpha {
+                    return [UIColor.black.withAlphaComponent(CGFloat(darkTitleAlpha)/255.0),
+                            UIColor.black.withAlphaComponent(CGFloat(darkBodyAlpha)/255.0)]
                 }
                 // if we reach here, we need to use mismatched light/dark
                 if let darkTitleAlpha = maybeDarkTitleAlpha,
-                       lightBodyAlpha = maybeLightBodyAlpha {
-                    return [UIColor.blackColor().colorWithAlphaComponent(CGFloat(darkTitleAlpha)/255.0),
-                        UIColor.whiteColor().colorWithAlphaComponent(CGFloat(lightBodyAlpha)/255.0)]
+                    let lightBodyAlpha = maybeLightBodyAlpha {
+                    return [UIColor.black.withAlphaComponent(CGFloat(darkTitleAlpha)/255.0),
+                            UIColor.white.withAlphaComponent(CGFloat(lightBodyAlpha)/255.0)]
                 }
                 else if let lightTitleAlpha = maybeLightTitleAlpha,
-                            darkBodyAlpha = maybeDarkBodyAlpha {
-                    return [UIColor.whiteColor().colorWithAlphaComponent(CGFloat(lightTitleAlpha)/255.0),
-                                UIColor.blackColor().colorWithAlphaComponent(CGFloat(darkBodyAlpha)/255.0)]
+                    let darkBodyAlpha = maybeDarkBodyAlpha {
+                    return [UIColor.white.withAlphaComponent(CGFloat(lightTitleAlpha)/255.0),
+                            UIColor.black.withAlphaComponent(CGFloat(darkBodyAlpha)/255.0)]
                 }
             }
             return [nil, nil]

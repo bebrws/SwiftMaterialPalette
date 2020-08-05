@@ -1,4 +1,10 @@
 # SwiftMaterialPalette
+
+## bebrws update
+This should now work for Swift 5!
+
+## Original readme:
+
 Generates a palette by extracting color swatches from an image.
 
 SwiftMaterialPalette is a Swift port of Android's [Palette](https://developer.android.com/reference/android/support/v7/graphics/Palette.html) class.

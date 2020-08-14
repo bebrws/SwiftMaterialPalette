@@ -259,9 +259,11 @@ class ColorCutQuantizer {
             // its most significant is the desired dimension
             ColorCutQuantizer.modifySignificantOctet(a: &colors, dimension: longestDimension, lower: lowerIndex, upper: upperIndex)
             
-            colors = Array(colors[0..<lowerIndex])
-            colors.append(contentsOf: colors[lowerIndex...upperIndex].sorted())
-            colors.append(contentsOf: Array(colors[(upperIndex+1)..<colors.count]))
+            var newColors: [Int] = []
+            if (lowerIndex > 0) { newColors.append(contentsOf: Array(colors[0..<lowerIndex])) }
+            newColors.append(contentsOf: colors[lowerIndex...upperIndex].sorted())
+            newColors.append(contentsOf: Array(colors[(upperIndex+1)..<colors.count]))
+            colors = newColors
             
             // Now revert all of the colors so that they are packed as RGB again
             ColorCutQuantizer.modifySignificantOctet(a: &colors, dimension: longestDimension, lower: lowerIndex, upper: upperIndex)

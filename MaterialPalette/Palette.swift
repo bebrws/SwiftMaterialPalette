@@ -11,7 +11,7 @@ import Foundation
 public class Palette {
     
     private let DEFAULT_RESIZE_BITMAP_MAX_DIMENSION = 192
-    private let DEFAULT_CALCULATE_NUMBER_COLORS = 16
+    private let DEFAULT_CALCULATE_NUMBER_COLORS = 16 // THIS WAS 16 it is the number of colors in the palette it will find
     
     public let swatches: [Swatch]
     let generator: DefaultGenerator

@@ -65,48 +65,37 @@ extension  UIImage {
     
     func applyOnPixels(closure:ModifyPixelsClosure) -> UIImage? {
         let inImage:CGImage = self.cgImage!
-        let context = self.createARGBBitmapContext(inImage: inImage)
+        let pixelData = inImage.dataProvider!.data
+        let data = CFDataGetBytePtr(pixelData);
         let pixelsWide = inImage.width
         let pixelsHigh = inImage.height
-        let rect = CGRect(x:0, y:0, width:Int(pixelsWide), height:Int(pixelsHigh))
-        
+
         let bitmapBytesPerRow = Int(pixelsWide) * 4
         
-        //Clear the context
-        context.clear(rect)
-        
-        // Draw the image to the bitmap context. Once we draw, the memory
-        // allocated for the context for rendering will then contain the
-        // raw image data in the specified color space.
-        context.draw(inImage, in: rect)
-        // WAS: CGContextDrawImage(context, rect, inImage)
-        
-        // Now we can get a pointer to the image data associated with the bitmap
-        // context.
-        
-        
-        let data = context.data
         let dataType = malloc(Int(bitmapBytesPerRow * pixelsHigh)).assumingMemoryBound(to: UInt8.self)
         
         for x in 0...(pixelsWide-1) {
             for y in 0...(pixelsHigh-1) {
-                let offset = 4*((Int(pixelsWide) * Int(y)) + Int(x))
-                let alpha = dataType[offset]
-                let red = dataType[offset+1]
-                let green = dataType[offset+2]
-                let blue = dataType[offset+3]
-                let (newRedColor, newGreenColor, newBlueColor, newAlphaValue): (UInt8, UInt8, UInt8, UInt8)  =  closure(CGPoint(x: CGFloat(x), y: CGFloat(y)), red, green,  blue, alpha)
-                dataType[offset] = newAlphaValue
-                dataType[offset + 1] = newRedColor
-                dataType[offset + 2] = newGreenColor
-                dataType[offset + 3] = newBlueColor
+                
+                let pixelInfo = ((Int(self.size.width) * y) + x ) * 4;
+                
+                let red   = data![pixelInfo + 0];
+                let green = data![pixelInfo + 1];
+                let blue  = data![pixelInfo + 2];
+                let alpha = data![pixelInfo + 3];
+                
+                dataType[pixelInfo + 3] = alpha
+                dataType[pixelInfo + 0] = red
+                dataType[pixelInfo + 1] = green
+                dataType[pixelInfo + 2] = blue
             }
         }
         
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let bitmapInfo = CGImageAlphaInfo.premultipliedFirst.rawValue
         
-        let finalcontext = CGContext(data: data, width: pixelsWide, height: pixelsHigh, bitsPerComponent: 8,  bytesPerRow: bitmapBytesPerRow, space: colorSpace, bitmapInfo: bitmapInfo)
+        let ptr = UnsafeMutableRawPointer.init(mutating: data)
+        let finalcontext = CGContext(data: ptr, width: pixelsWide, height: pixelsHigh, bitsPerComponent: 8,  bytesPerRow: bitmapBytesPerRow, space: colorSpace, bitmapInfo: bitmapInfo)
         
         let imageRef = finalcontext!.makeImage()
         return UIImage(cgImage: imageRef!, scale: self.scale,orientation: self.imageOrientation)

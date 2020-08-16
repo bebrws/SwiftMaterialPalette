@@ -93,6 +93,7 @@ public class Palette {
         private static let MIN_CONTRAST_TITLE_TEXT: Float = 3.0
         private static let MIN_CONTRAST_BODY_TEXT: Float = 4.5
         
+        public var textColors: [UIColor?]
         public let color: UIColor
         public let population: Int
         
@@ -103,9 +104,9 @@ public class Palette {
             self.color = color
             self.population = population
             let rgb = color.rgb()
-            let textColors = Swatch.generateTextColors(maybeRgb: rgb)
-            self.titleTextColor = textColors[0]
-            self.bodyTextColor = textColors[1]
+            self.textColors = Swatch.generateTextColors(maybeRgb: rgb)
+            self.titleTextColor = self.textColors[0]
+            self.bodyTextColor = self.textColors[1]
         }
         
         public var description: String {

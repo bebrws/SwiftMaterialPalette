@@ -72,8 +72,6 @@ extension  UIImage {
 
         let bitmapBytesPerRow = Int(pixelsWide) * 4
         
-        let dataType = malloc(Int(bitmapBytesPerRow * pixelsHigh)).assumingMemoryBound(to: UInt8.self)
-        
         for x in 0...(pixelsWide-1) {
             for y in 0...(pixelsHigh-1) {
                 
@@ -84,10 +82,7 @@ extension  UIImage {
                 let blue  = data![pixelInfo + 2];
                 let alpha = data![pixelInfo + 3];
                 
-                dataType[pixelInfo + 3] = alpha
-                dataType[pixelInfo + 0] = red
-                dataType[pixelInfo + 1] = green
-                dataType[pixelInfo + 2] = blue
+                let (newRedColor, newGreenColor, newBlueColor, newAlphaValue): (UInt8, UInt8, UInt8, UInt8)  =  closure(CGPoint(x: CGFloat(x), y: CGFloat(y)), red, green,  blue, alpha)
             }
         }
         

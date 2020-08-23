@@ -7,6 +7,28 @@
 //
 
 import Foundation
+import UIKit
+
+extension UIColor {
+    
+    func distanceTo(color: UIColor) -> Double
+    {
+        
+        var otherred: CGFloat = 0.0, othergreen: CGFloat = 0.0, otherblue: CGFloat = 0.0, otheralpha: CGFloat = 0.0
+        self.getRed(&otherred, green: &othergreen, blue: &otherblue, alpha: &otheralpha)
+        var red: CGFloat = 0.0, green: CGFloat = 0.0, blue: CGFloat = 0.0, alpha: CGFloat = 0.0
+        self.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        
+        let rmean = (red + otherred ) / 2;
+        let r = red - otherred;
+        let g = green - othergreen;
+        let b = blue - otherblue;
+        let inner1 = Int((512+rmean)*r*r)
+        let inner2 = Int(4*g*g)
+        let inner3 = Int((767-rmean)*b*b)
+        return sqrt(Double((inner1 >> 8) + inner3 + (inner3 >> 8)));
+    }
+}
 
 class ColorCutQuantizer {
     enum Dimension {
@@ -47,6 +69,37 @@ class ColorCutQuantizer {
         
         self.colors = Array(histogram.keys)
         
+//        var colorAndCount: [(color: UIColor, count: Int)] = []
+//        for (color, count) in histogram {
+//            colorAndCount.append((color: ColorCutQuantizer.approximateToRgb888(color: color), count: count))
+//        }
+//        
+//        var uicolors:[UIColor] = self.colors.map({ ColorCutQuantizer.approximateToRgb888(color: $0) })
+//        var uicolorsAndAvgs:[(davg: Double, color: UIColor, count: Int)] = []
+//        var maxAverage: Double = 0
+//        var maxCount: Int = 0
+//        for (oc, ocount) in colorAndCount {
+//            var davg: Double = 0
+//            for (ic, icount) in colorAndCount {
+//                davg += ic.distanceTo(color: oc)
+//            }
+//            davg /= Double(uicolors.count)
+//            uicolorsAndAvgs.append((davg: davg, color: oc, count: ocount))
+//            
+//            if (ocount > maxCount) {
+//                maxCount = ocount
+//            }
+//            if (davg > maxAverage) {
+//               maxAverage = davg
+//            }
+//        }
+//        
+//        // uicolorsAndAvgs.sort(by: { (($0.davg/maxAverage) + Double($0.count/maxCount)) > (($1.davg/maxAverage) + Double($1.count/maxCount)) })
+//        
+//        uicolorsAndAvgs.sort(by: { (($0.davg/maxAverage)) > (($1.davg/maxAverage)) })
+//        
+//        self.quantizedColors = uicolorsAndAvgs.map({ Palette.Swatch(color: $0.color, population: 0) })
+//        
         if (distinctColorCount <= maxColors) {
             // The image has fewer colors than the maximum requested, so just return the colors
             for (color, count) in histogram {
@@ -216,12 +269,15 @@ class ColorCutQuantizer {
         
             // find median along the longest dimension
             let splitPoint = findSplitPoint()
-            let newBox = Vbox(lowerIndex: splitPoint + 1, upperIndex: self.upperIndex, colors: colors, histogram: histogram)
+            let newBox = Vbox(lowerIndex: splitPoint, upperIndex: self.upperIndex, colors: colors, histogram: histogram)
+            
+//            let colorDistanceForVBox = self.lowerIndex - self.upperIndex
+//            let newBox = Vbox(lowerIndex: min(splitPoint - colorDistanceForVBox/2, self.upperIndex), upperIndex: max(splitPoint + colorDistanceForVBox/2, self.upperIndex), colors: colors, histogram: histogram)
             
             // Now change this box's upperIndex and recompute the color boundaries
             self.upperIndex = splitPoint
+
             fitBox()
-            
             return newBox
         }
         
@@ -260,6 +316,7 @@ class ColorCutQuantizer {
             ColorCutQuantizer.modifySignificantOctet(a: &colors, dimension: longestDimension, lower: lowerIndex, upper: upperIndex)
             
             var newColors: [Int] = []
+            // TODO: Should this sort prior to concatenating slices
             if (lowerIndex > 0) { newColors.append(contentsOf: Array(colors[0..<lowerIndex])) }
             newColors.append(contentsOf: colors[lowerIndex...upperIndex].sorted())
             newColors.append(contentsOf: Array(colors[(upperIndex+1)..<colors.count]))

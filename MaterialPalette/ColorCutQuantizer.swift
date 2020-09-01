@@ -261,10 +261,17 @@ class ColorCutQuantizer {
         
             // find median along the longest dimension
             let splitPoint = findSplitPoint()
+<<<<<<< HEAD
 //            let newBox = Vbox(lowerIndex: splitPoint, upperIndex: self.upperIndex, colors: colors, histogram: histogram)
             
             let colorDistanceForVBox = self.lowerIndex - self.upperIndex
             let newBox = Vbox(lowerIndex: min(splitPoint - colorDistanceForVBox/2, self.upperIndex), upperIndex: max(splitPoint + colorDistanceForVBox/2, self.upperIndex), colors: colors, histogram: histogram)
+=======
+            let newBox = Vbox(lowerIndex: splitPoint, upperIndex: self.upperIndex, colors: colors, histogram: histogram)
+            
+//            let colorDistanceForVBox = self.lowerIndex - self.upperIndex
+//            let newBox = Vbox(lowerIndex: min(splitPoint - colorDistanceForVBox/2, self.upperIndex), upperIndex: max(splitPoint + colorDistanceForVBox/2, self.upperIndex), colors: colors, histogram: histogram)
+>>>>>>> 7fc23a3726d67f1f5fca438f0654dfc38c9f22c9
             
             // Now change this box's upperIndex and recompute the color boundaries
             self.upperIndex = splitPoint

@@ -14,22 +14,22 @@ public class Palette {
     private let DEFAULT_CALCULATE_NUMBER_COLORS = 16 // THIS WAS 16 it is the number of colors in the palette it will find
     
     public let swatches: [Swatch]
-    let generator: DefaultGenerator
+    public let generator: DefaultGenerator
     
-    public init(uiImage: UIImage) {
+    public init(uiImage: UIImage, minBrightness: Double, minSaturation: Double) {
         
         // We have a Bitmap so we need to quantization to reduce the number of colors
         
         // First we'll scale down the bitmap so it's largest dimension is as specified
         let scaledBitmap: UIImage = Palette.scaleBitmapDown(bitmap: uiImage, targetMaxDimension: DEFAULT_RESIZE_BITMAP_MAX_DIMENSION)
         
-        let quantizer = ColorCutQuantizer(bitmap: scaledBitmap, maxColors: DEFAULT_CALCULATE_NUMBER_COLORS)
+        let quantizer = ColorCutQuantizer(bitmap: scaledBitmap, maxColors: DEFAULT_CALCULATE_NUMBER_COLORS, minBrightness: minBrightness, minSaturation: minSaturation)
         
-        swatches = quantizer.quantizedColors
+        self.swatches = quantizer.quantizedColors
         
         // If we haven't been provided with a generator, use the default
         // if (mGenerator == null) {
-            generator = DefaultGenerator()
+        self.generator = DefaultGenerator()
         // }
         
         // Now call let the Generator do it's thing

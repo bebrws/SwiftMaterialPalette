@@ -7,6 +7,28 @@
 //
 
 import Foundation
+import UIKit
+
+extension UIColor {
+    
+    func distanceTo(color: UIColor) -> Double
+    {
+        
+        var otherred: CGFloat = 0.0, othergreen: CGFloat = 0.0, otherblue: CGFloat = 0.0, otheralpha: CGFloat = 0.0
+        self.getRed(&otherred, green: &othergreen, blue: &otherblue, alpha: &otheralpha)
+        var red: CGFloat = 0.0, green: CGFloat = 0.0, blue: CGFloat = 0.0, alpha: CGFloat = 0.0
+        self.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        
+        let rmean = (red + otherred ) / 2;
+        let r = red - otherred;
+        let g = green - othergreen;
+        let b = blue - otherblue;
+        let inner1 = Int((512+rmean)*r*r)
+        let inner2 = Int(4*g*g)
+        let inner3 = Int((767-rmean)*b*b)
+        return sqrt(Double((inner1 >> 8) + inner3 + (inner3 >> 8)));
+    }
+}
 
 class ColorCutQuantizer {
     enum Dimension {
@@ -33,7 +55,7 @@ class ColorCutQuantizer {
     * @param maxColors The maximum number of colors that should be in the result palette.
     * @param filters Set of filters to use in the quantization stage
     */
-    init(bitmap: UIImage, maxColors: Int) {
+    init(bitmap: UIImage, maxColors: Int, minBrightness: Double, minSaturation: Double) {
         bitmap.applyOnPixels(closure: {
             (point:CGPoint, redColor:UInt8, greenColor:UInt8, blueColor:UInt8, alphaValue:UInt8) -> (UInt8, UInt8, UInt8, UInt8) in
             let quantizedColor = ColorCutQuantizer.quantizeFromRgb888(red: redColor, green: greenColor, blue: blueColor)
@@ -47,6 +69,25 @@ class ColorCutQuantizer {
         
         self.colors = Array(histogram.keys)
         
+        var hues: [CGFloat] = []
+        // Filter colors here before
+        self.colors = colors.filter {
+            let hsb = ColorCutQuantizer.approximateToRgb888(color: $0).hsb()
+            
+            let curHue = hsb![0]
+            let saturation = hsb![1]
+            let brightness = hsb![2]
+            
+            if (brightness > CGFloat(minBrightness) && saturation > CGFloat(minSaturation)) {
+                return true
+            }
+            
+            
+            self.histogram.removeValue(forKey: $0)
+            return false
+        }
+        
+  
         if (distinctColorCount <= maxColors) {
             // The image has fewer colors than the maximum requested, so just return the colors
             for (color, count) in histogram {
@@ -63,16 +104,20 @@ class ColorCutQuantizer {
         // Create the priority queue which is sorted by volume descending. This means we always
         // split the largest box in the queue
         var pq = PriorityQueue<Vbox>()
+        if colors.count > 1 {
+            // To start, offer a box which contains all of the colors
+            pq.push(element: Vbox(lowerIndex: 0, upperIndex: colors.count - 1, colors: colors, histogram: histogram))
+            
+            // Now go through the boxes, splitting them until we have reached maxColors or there are no
+            // more boxes to split
+            pq = splitBoxes(queue: &pq, maxSize: maxColors)
         
-        // To start, offer a box which contains all of the colors
-        pq.push(element: Vbox(lowerIndex: 0, upperIndex: colors.count - 1, colors: colors, histogram: histogram))
-        
-        // Now go through the boxes, splitting them until we have reached maxColors or there are no
-        // more boxes to split
-        pq = splitBoxes(queue: &pq, maxSize: maxColors)
-        
-        // Finally, return the average colors of the color boxes
-        return generateAverageColors(vboxes: pq)
+            // Finally, return the average colors of the color boxes
+            return generateAverageColors(vboxes: pq)
+        } else {
+            let emptypq: PriorityQueue<Vbox> = PriorityQueue<Vbox>()
+            return generateAverageColors(vboxes: emptypq)
+        }
     }
     
     /**
@@ -216,12 +261,15 @@ class ColorCutQuantizer {
         
             // find median along the longest dimension
             let splitPoint = findSplitPoint()
-            let newBox = Vbox(lowerIndex: splitPoint + 1, upperIndex: self.upperIndex, colors: colors, histogram: histogram)
+//            let newBox = Vbox(lowerIndex: splitPoint, upperIndex: self.upperIndex, colors: colors, histogram: histogram)
+            
+            let colorDistanceForVBox = self.lowerIndex - self.upperIndex
+            let newBox = Vbox(lowerIndex: min(splitPoint - colorDistanceForVBox/2, self.upperIndex), upperIndex: max(splitPoint + colorDistanceForVBox/2, self.upperIndex), colors: colors, histogram: histogram)
             
             // Now change this box's upperIndex and recompute the color boundaries
             self.upperIndex = splitPoint
+
             fitBox()
-            
             return newBox
         }
         
@@ -260,6 +308,7 @@ class ColorCutQuantizer {
             ColorCutQuantizer.modifySignificantOctet(a: &colors, dimension: longestDimension, lower: lowerIndex, upper: upperIndex)
             
             var newColors: [Int] = []
+            // TODO: Should this sort prior to concatenating slices
             if (lowerIndex > 0) { newColors.append(contentsOf: Array(colors[0..<lowerIndex])) }
             newColors.append(contentsOf: colors[lowerIndex...upperIndex].sorted())
             newColors.append(contentsOf: Array(colors[(upperIndex+1)..<colors.count]))

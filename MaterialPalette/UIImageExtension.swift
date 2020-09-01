@@ -74,7 +74,7 @@ extension  UIImage {
         
         for x in 0...(pixelsWide-1) {
             for y in 0...(pixelsHigh-1) {
-                
+                 
                 let pixelInfo = ((Int(self.size.width) * y) + x ) * 4;
                 
                 let red   = data![pixelInfo + 0];

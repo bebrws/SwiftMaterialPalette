@@ -8,7 +8,7 @@
 
 import Foundation
 
-class DefaultGenerator {
+public class DefaultGenerator {
     
     private let TARGET_DARK_LUMA: CGFloat = 0.26
     private let MAX_DARK_LUMA: CGFloat = 0.45
@@ -34,12 +34,12 @@ class DefaultGenerator {
     
     private var highestPopulation: Int?
     
-    var vibrantSwatch: Palette.Swatch?
-    var mutedSwatch: Palette.Swatch?
-    var darkVibrantSwatch: Palette.Swatch?
-    var darkMutedSwatch: Palette.Swatch?
-    var lightVibrantSwatch: Palette.Swatch?
-    var lightMutedSwatch: Palette.Swatch?
+    public var vibrantSwatch: Palette.Swatch?
+    public var mutedSwatch: Palette.Swatch?
+    public var darkVibrantSwatch: Palette.Swatch?
+    public var darkMutedSwatch: Palette.Swatch?
+    public var lightVibrantSwatch: Palette.Swatch?
+    public var lightMutedSwatch: Palette.Swatch?
     
     func generate(swatches: [Palette.Swatch]) {
         self.swatches = swatches
@@ -50,6 +50,8 @@ class DefaultGenerator {
         
         // Now try and generate any missing colors
         generateEmptySwatches()
+        
+        
     }
     
     func generateVariationColors() {

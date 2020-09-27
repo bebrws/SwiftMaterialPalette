@@ -55,7 +55,7 @@ class ColorCutQuantizer {
     * @param maxColors The maximum number of colors that should be in the result palette.
     * @param filters Set of filters to use in the quantization stage
     */
-    init(bitmap: UIImage, maxColors: Int, distanceWeigthing: Bool, minBrightness: Double, minSaturation: Double) {
+    init(bitmap: UIImage, maxColors: Int, distanceWeigthing: Bool) {
         bitmap.applyOnPixels(closure: {
             (point:CGPoint, redColor:UInt8, greenColor:UInt8, blueColor:UInt8, alphaValue:UInt8) -> (UInt8, UInt8, UInt8, UInt8) in
             let quantizedColor = ColorCutQuantizer.quantizeFromRgb888(red: redColor, green: greenColor, blue: blueColor)
@@ -68,105 +68,7 @@ class ColorCutQuantizer {
         let distinctColorCount = histogram.count
         
         self.colors = Array(histogram.keys)
-        
-        var hues: [CGFloat] = []
-        // Filter colors here before
-        
-        var filteredColors: [UIColor] = []
-        
-        var maxHistoCount = 0
-        
-        var filteredHistogram: [UIColor: Int] = [:]
-        
-        self.colors = colors.filter {
-            let c = ColorCutQuantizer.approximateToRgb888(color: $0)
-            
-            let hsb = c.hsb()
-            
-            let curHue = hsb![0]
-            let saturation = hsb![1]
-            let brightness = hsb![2]
-            
-            if (brightness > CGFloat(minBrightness) && saturation > CGFloat(minSaturation)) {
-                filteredColors.append(c)
-                
-                if histogram[$0]! > maxHistoCount {
-                    maxHistoCount = histogram[$0]!
-                }
-                filteredHistogram[c] = histogram[$0]!
-                return true
-            }
-            
-            
-            self.histogram.removeValue(forKey: $0)
-            return false
-        }
-        
-        if distanceWeigthing {
-            var maxDistance: CGFloat = 0
-            var averageDistance: CGFloat = 0
-            var totalDistance: CGFloat = 0
-            var distanceCount = 0
-            
-            var colorToAverageDistance: [UIColor: CGFloat] = [:]
-            
-            for c in filteredColors {
-                var colorCount = 0
-                var colorAverageDistance: CGFloat = 0
-                for innerc in filteredColors {
-                    let xDist = abs(c.XYZ.X - innerc.XYZ.X)
-                    let yDist = abs(c.XYZ.Y - innerc.XYZ.Y)
-                    let zDist = abs(c.XYZ.Z - innerc.XYZ.Z)
-                    let dist = sqrt(xDist * xDist + yDist * yDist + zDist * zDist)
-                    totalDistance += dist
-                    distanceCount += 1
-                    
-                    colorAverageDistance += dist
-                    colorCount += 1
-                    
-                    if dist > maxDistance {
-                        maxDistance = dist
-                    }
-                }
-                
-                colorToAverageDistance[c] = colorAverageDistance / CGFloat(colorCount)
-            }
-            
-            averageDistance = (totalDistance / CGFloat(distanceCount)) * 1/5
-            
-            
-            var colorsToKeep: [UIColor] = []
-            self.colors = colors.filter {
-                let c = ColorCutQuantizer.approximateToRgb888(color: $0)
 
-                var toKeep: Bool = true
-                for ck in colorsToKeep {
-                    let xDist = abs(c.XYZ.X - ck.XYZ.X)
-                    let yDist = abs(c.XYZ.Y - ck.XYZ.Y)
-                    let zDist = abs(c.XYZ.Z - ck.XYZ.Z)
-                    let dist = sqrt(xDist * xDist + yDist * yDist + zDist * zDist)
-                    
-                    if dist < averageDistance {
-                        toKeep = false
-                        break
-                    }
-                }
-                
-                if toKeep {
-                    colorsToKeep.append(c)
-                    
-                    self.histogram[$0]! += (maxHistoCount * Int(colorToAverageDistance[c]! / averageDistance)) * 2 // dividing by averageDistance gives better results than macDistance
-                    
-                    return true
-                }
-                
-                
-                filteredHistogram.removeValue(forKey: c)
-                self.histogram.removeValue(forKey: $0)
-                return false
-            }
-        }
-  
         if (distinctColorCount <= maxColors) {
             // The image has fewer colors than the maximum requested, so just return the colors
             for (color, count) in histogram {
